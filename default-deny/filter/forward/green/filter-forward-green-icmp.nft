@@ -1,0 +1,65 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-forward-green-icmp.nft
+# Title: Rules for ICMP packets in green zone with type filter and hook forward
+#
+
+
+add chain inet filter forward_green_icmp
+add counter inet filter green_forward_icmp
+add counter inet filter unexpected_green_forward_icmp
+
+add rule inet filter forward_green_icmp counter
+add rule inet filter forward_green_icmp counter name green_forward_icmp
+
+
+# icmp for ipv4 connections
+add rule inet filter forward_green_icmp ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } limit rate 100/second accept
+add rule inet filter forward_green_icmp ip protocol icmp icmp type echo-request limit rate over 1/second counter drop
+add rule inet filter forward_green_icmp ip protocol icmp icmp type echo-request counter accept
+
+# the good stuff of IPv6  (probably should filter down to just private subnets
+add rule inet filter forward_green_icmp ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } limit rate 100/second accept
+# ICMP ping dealt with separately to rate limit
+add rule inet filter forward_green_icmp ip6 nexthdr icmpv6 icmpv6 type echo-request limit rate over 1/second counter drop
+add rule inet filter forward_green_icmp ip6 nexthdr icmpv6 icmpv6 type echo-request counter accept
+# add rule inet filter forward_green_icmp fib daddr type broadcast counter drop
+# add rule inet filter forward_green_icmp fib daddr type anycast counter drop
+# add rule inet filter forward_green_icmp fib daddr type multicast counter drop
+# icmpv6 for ipv6 connections
+add rule inet filter forward_green_icmp meta l4proto icmp counter accept comment "Accept ICMP"
+
+# accept neighbour discovery otherwise IPv6 connectivity breaks.
+add rule inet filter forward_green_icmp ip6 nexthdr icmpv6 icmpv6 type destination-unreachable counter accept;
+add rule inet filter forward_green_icmp ip6 nexthdr icmpv6 icmpv6 type packet-too-big counter accept;
+add rule inet filter forward_green_icmp ip6 nexthdr icmpv6 icmpv6 type time-exceeded counter accept;
+add rule inet filter forward_green_icmp ip6 nexthdr icmpv6 icmpv6 type parameter-problem counter accept;
+add rule inet filter forward_green_icmp ip6 nexthdr icmpv6 icmpv6 type echo-reply counter accept;
+add rule inet filter forward_green_icmp ip6 nexthdr icmpv6 icmpv6 type nd-router-advert counter accept;
+add rule inet filter forward_green_icmp ip6 nexthdr icmpv6 icmpv6 type nd-neighbor-solicit counter accept;
+add rule inet filter forward_green_icmp ip6 nexthdr icmpv6 icmpv6 type nd-neighbor-advert counter accept;
+
+# accept ping
+add rule inet filter forward_green_icmp ip protocol icmp icmp type echo-request counter accept;
+add rule inet filter forward_green_icmp ip protocol icmp icmp type echo-request counter accept
+add rule inet filter forward_green_icmp ip protocol icmp icmp type echo-reply counter accept;
+add rule inet filter forward_green_icmp ip protocol icmp icmp type destination-unreachable counter accept;
+add rule inet filter forward_green_icmp ip protocol icmp icmp type router-advertisement counter accept;
+add rule inet filter forward_green_icmp ip protocol icmp icmp type time-exceeded counter accept;
+add rule inet filter forward_green_icmp ip protocol icmp icmp type parameter-problem counter accept;
+
+# deny certain ICMP
+add rule inet filter forward_green_icmp ip protocol icmp icmp type source-quench counter drop;
+add rule inet filter forward_green_icmp ip protocol icmp icmp type redirect counter drop;
+add rule inet filter forward_green_icmp ip protocol icmp icmp type router-solicitation counter drop;
+add rule inet filter forward_green_icmp ip protocol icmp icmp type timestamp-request counter drop;
+add rule inet filter forward_green_icmp ip protocol icmp icmp type timestamp-reply counter drop;
+add rule inet filter forward_green_icmp ip protocol icmp icmp type info-request counter drop;
+add rule inet filter forward_green_icmp ip protocol icmp icmp type info-reply counter drop;
+add rule inet filter forward_green_icmp ip protocol icmp icmp type address-mask-request counter drop;
+add rule inet filter forward_green_icmp ip protocol icmp icmp type address-mask-reply counter drop;
+
+
+
+add rule inet filter forward_green_icmp counter name unexpected_green_forward_icmp
+add rule inet filter forward_green_icmp log prefix forward_green_icmp drop comment forward_green_icmp
+

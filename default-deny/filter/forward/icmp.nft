@@ -1,0 +1,252 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: icmp.nft
+# Title: Rules for ICMP packets in all zones with type filter and input hook
+
+# File: icmp.nft
+# Title: ICMP packets
+#
+
+add table inet filter
+
+
+
+# LO lo localhost
+# lo input Allowed 
+add chain inet filter allowed_input_lo
+add rule inet filter allowed_input_lo counter accept
+
+# lo input
+add chain inet filter input_lo
+add rule inet filter input_lo counter jump allowed_input_lo
+
+# Input ALL UDP
+add chain inet filter allowed_input_all_udp
+add counter inet filter udp_all { comment "UDP on all interfaces" }
+add rule inet filter allowed_input_all_udp counter name udp_all
+add rule inet filter allowed_input_all_udp ip protocol udp counter reject with icmp type port-unreachable comment "reject IPv4 UDP input with ICMP port unreachable"
+add rule inet filter allowed_input_all_udp ip6 nexthdr udp counter reject with icmpv6 type port-unreachable comment "reject IPv6 UDP input with ICMPv6 port unreachable"
+# Input ALL must be a pass-thru chain policy (no drop at end)
+
+
+# RED wlp4s0 WAN public Internet
+
+# Allowed RED
+add chain inet filter allowed_input_red_tcp
+add counter inet filter red_input_tcp
+add rule inet filter allowed_input_red_tcp counter name red_input_tcp
+add rule inet filter allowed_input_red_tcp tcp sport 443 counter accept
+add rule inet filter allowed_input_red_tcp tcp sport 80 counter accept
+add rule inet filter allowed_input_red_tcp tcp sport 53 counter accept
+add rule inet filter allowed_input_red_tcp tcp dport 53 counter accept
+add rule inet filter allowed_input_red_tcp tcp dport 22 counter accept
+add rule inet filter allowed_input_red_tcp tcp dport 922 counter accept
+add rule inet filter allowed_input_red_tcp tcp dport { 139, 445} counter drop comment "silently drop NetBios"
+add rule inet filter allowed_input_red_tcp log prefix allowed_input_red_tcp counter drop comment allowed_input_red_tcp
+
+add chain inet filter allowed_input_red_udp
+add counter inet filter red_input_udp
+add rule inet filter allowed_input_red_udp counter name red_input_udp
+add rule inet filter allowed_input_red_udp udp sport 67 udp dport 68 counter accept  # from DHCP server
+add rule inet filter allowed_input_red_udp udp dport 53 counter accept  # inbound DNS
+add rule inet filter allowed_input_red_udp udp sport 53 counter accept  # outbound DNS
+add rule inet filter allowed_input_red_udp udp sport 123 udp dport 123 counter accept
+add rule inet filter allowed_input_red_udp ip daddr 224.0.0.251 udp dport 1900 counter drop  # uPnP
+add rule inet filter allowed_input_red_udp ip daddr 224.0.0.251 udp dport 5353 counter drop  # mdns/iOS Bonjour/Avahi 5353/udp
+add rule inet filter allowed_input_red_udp udp dport { 137, 138} counter drop comment "silently drop NetBios"
+add rule inet filter allowed_input_red_udp counter jump allowed_input_all_udp
+add rule inet filter allowed_input_red_udp log prefix allowed_input_red_udp counter drop comment allowed_input_red_udp
+
+
+
+
+# Input RED
+add chain inet filter input_red
+add counter inet filter red_input
+add rule inet filter input_red counter name red_input_icmp
+
+# Drop locals from internet
+add rule inet filter input_red ip saddr 121.12.242.43 counter drop  # BANNED
+# drop loopback traffic on non-loopback interfaces
+add rule inet filter input_red ip daddr 127.0.0.1/8 counter drop comment "drop invalid loopback traffic"
+add rule inet filter input_red ip6 daddr ::1/128 counter drop comment "drop invalid loopback traffic"
+
+add rule inet filter input_red ip saddr \
+        {  \
+		192.168.0.0/24,  \
+		192.168.2.0/23, \
+		192.168.4.0/22, \
+		192.168.8.0/21, \
+		192.168.16.0/20, \
+		192.168.32.0/19, \
+		192.168.64.0/18, \
+		192.168.128.0/17, \
+		10.0.0.0/8, \
+		172.16.0.0/12 } log prefix stray_packet counter drop comment "stray packet"
+
+
+# add rule inet filter input_red ip protocol tcp tcp dport \
+#         { $TORRENT_PORT_LAN, $TORRENT_PORT_WAN, \
+#                 $TRACKER_TORRENT_PORT_WAN } ct state new counter accept;
+# add rule inet filter input_red ip protocol udp udp dport \
+#         { $TORRENT_PORT_LAN, $TORRENT_PORT_WAN, \
+#                 $TRACKER_TORRENT_PORT_WAN } ct state new counter accept;
+add rule inet filter input_red ip protocol tcp ct state new counter jump allowed_input_red_tcp
+add rule inet filter input_red ip protocol udp ct state new counter jump allowed_input_red_udp
+add rule inet filter input_red ip protocol icmp ct state new counter jump allowed_input_red_icmp
+add rule inet filter input_red meta l4proto ipv6-icmp counter accept comment "Accept ICMPv6"
+add rule inet filter input_red ip protocol igmp counter accept comment "Accept IGMP"
+add rule inet filter input_red counter log prefix input_red drop comment input_red
+
+
+# GREEN enp5s0/br0 LAN-based green home-network
+# Allowed GREEN
+add chain inet filter allowed_input_green_tcp
+add counter inet filter green_input_tcp
+add rule inet filter allowed_input_green_tcp counter name green_input_tcp
+add rule inet filter allowed_input_green_tcp tcp dport 22 counter accept
+add rule inet filter allowed_input_green_tcp tcp dport 922 counter accept
+add rule inet filter allowed_input_green_tcp tcp dport 2222 counter accept
+add rule inet filter allowed_input_green_tcp tcp dport 2224 counter accept
+
+# Allowed GREEN
+add chain inet filter allowed_input_green_udp
+add counter inet filter green_input_udp
+add rule inet filter allowed_input_green_udp counter name green_input_udp
+add rule inet filter allowed_input_green_udp udp sport 68 udp dport 67 counter accept
+add rule inet filter allowed_input_green_udp udp dport 53 counter accept
+add rule inet filter allowed_input_green_udp udp sport 53 counter accept
+add rule inet filter allowed_input_green_udp udp sport 123 udp dport 123 counter accept
+add rule inet filter allowed_input_green_udp counter jump allowed_input_all_udp
+
+add chain inet filter allowed_input_green_icmp
+add counter inet filter green_input_icmp
+add rule inet filter allowed_input_green_icmp counter name green_input_icmp
+
+# icmp for ipv4 connections
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } limit rate 100/second accept
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type echo-request limit rate over 1/second counter drop
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type echo-request counter accept
+
+# the good stuff of IPv6  (probably should filter down to just private subnets
+add rule inet filter allowed_input_green_icmp ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } limit rate 100/second accept
+# ICMP ping dealt with separately to rate limit
+add rule inet filter allowed_input_green_icmp ip6 nexthdr icmpv6 icmpv6 type echo-request limit rate over 1/second counter drop
+add rule inet filter allowed_input_green_icmp ip6 nexthdr icmpv6 icmpv6 type echo-request counter accept
+# add rule inet filter allowed_input_green_icmp fib daddr type broadcast counter drop
+# add rule inet filter allowed_input_green_icmp fib daddr type anycast counter drop
+# add rule inet filter allowed_input_green_icmp fib daddr type multicast counter drop
+# icmpv6 for ipv6 connections
+add rule inet filter allowed_input_green_icmp meta l4proto icmp counter accept comment "Accept ICMP"
+
+# accept neighbour discovery otherwise IPv6 connectivity breaks.
+add rule inet filter allowed_input_green_icmp ip6 nexthdr icmpv6 icmpv6 type destination-unreachable counter accept;
+add rule inet filter allowed_input_green_icmp ip6 nexthdr icmpv6 icmpv6 type packet-too-big counter accept;
+add rule inet filter allowed_input_green_icmp ip6 nexthdr icmpv6 icmpv6 type time-exceeded counter accept;
+add rule inet filter allowed_input_green_icmp ip6 nexthdr icmpv6 icmpv6 type parameter-problem counter accept;
+add rule inet filter allowed_input_green_icmp ip6 nexthdr icmpv6 icmpv6 type echo-reply counter accept;
+add rule inet filter allowed_input_green_icmp ip6 nexthdr icmpv6 icmpv6 type nd-router-advert counter accept;
+add rule inet filter allowed_input_green_icmp ip6 nexthdr icmpv6 icmpv6 type nd-neighbor-solicit counter accept;
+add rule inet filter allowed_input_green_icmp ip6 nexthdr icmpv6 icmpv6 type nd-neighbor-advert counter accept;
+
+# accept ping
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type echo-request counter accept;
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type echo-request counter accept
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type echo-reply counter accept;
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type destination-unreachable counter accept;
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type router-advertisement counter accept;
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type time-exceeded counter accept;
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type parameter-problem counter accept;
+
+# deny certain ICMP
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type source-quench counter drop;
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type redirect counter drop;
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type router-solicitation counter drop;
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type timestamp-request counter drop;
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type timestamp-reply counter drop;
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type info-request counter drop;
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type info-reply counter drop;
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type address-mask-request counter drop;
+add rule inet filter allowed_input_green_icmp ip protocol icmp icmp type address-mask-reply counter drop;
+add rule inet filter allowed_input_green_icmp log prefix allowed_input_green_icmp drop comment allowed_input_green_icmp
+
+# Input Green
+add chain inet filter input_green
+add counter inet filter green_input
+add counter inet filter green_input_final
+add rule inet filter input_green counter name green_input
+add rule inet filter input_green ip daddr 127.0.0.1/8 counter drop comment "drop invalid loopback traffic"
+add rule inet filter input_green ip6 daddr ::1/128 counter drop comment "drop invalid loopback traffic"
+add rule inet filter input_green ip protocol tcp ct state new counter jump allowed_input_green_tcp
+add rule inet filter input_green ip protocol udp ct state new counter jump allowed_input_green_udp
+add rule inet filter input_green ip protocol icmp ct state new counter jump allowed_input_green_icmp
+add rule inet filter input_green counter log prefix input_green drop comment input_green
+add rule inet filter input_green counter name green_input_final
+
+# BLUE
+# blue - virtual machine network
+# allowed_blue
+add chain inet filter allowed_input_blue_tcp
+add counter inet filter blue_input_tcp
+add rule inet filter allowed_input_blue_tcp counter name blue_input_tcp
+add rule inet filter allowed_input_blue_tcp tcp dport 22 counter accept
+add rule inet filter allowed_input_blue_tcp counter log prefix allowed_input_blue_tcp drop comment allowed_input_blue_tcp
+
+add chain inet filter allowed_input_blue_udp
+add counter inet filter blue_input_udp
+add rule inet filter allowed_input_blue_udp counter name blue_input_udp
+add rule inet filter allowed_input_blue_udp udp sport 67 udp dport 68 counter accept
+add rule inet filter allowed_input_blue_udp udp sport 68 udp dport 67 counter accept
+add rule inet filter allowed_input_blue_udp udp dport 53 counter accept
+add rule inet filter allowed_input_blue_udp udp sport 53 counter accept
+add rule inet filter allowed_input_blue_udp udp sport 123 udp dport 123 counter accept
+add rule inet filter allowed_input_green_udp counter jump allowed_input_all_udp
+add rule inet filter allowed_input_blue_udp counter log prefix allowed_input_blue_udp drop comment allowed_input_blue_udp
+
+# Input BLUE
+add chain inet filter input_blue
+add counter inet filter blue_input
+add rule inet filter input_blue counter name blue_input
+add rule inet filter input_blue ip daddr 127.0.0.1/8 counter drop comment "drop invalid loopback traffic"
+add rule inet filter input_blue ip6 daddr ::1/128 counter drop comment "drop invalid loopback traffic"
+add rule inet filter input_blue ip protocol tcp ct state new counter jump allowed_input_blue_tcp
+add rule inet filter input_blue ip protocol udp ct state new counter jump allowed_input_blue_udp
+add rule inet filter input_blue counter log prefix input_blue drop comment input_blue
+
+# bad packets
+add chain inet filter bad_packets
+add counter inet filter packets_bad
+add rule inet filter bad_packets counter name packets_bad
+# if the connection is NEW and is not SYN then drop
+add rule inet filter bad_packets tcp flags != syn ct state new log prefix "FIRST PACKET IS NOT SYN" counter drop
+# new and sending FIN the connection? DROP!
+add rule inet filter bad_packets tcp flags & (fin|syn) == (fin|syn) log prefix "SCANNER1" counter drop
+# i don't think we've met but you're sending a reset?
+add rule inet filter bad_packets tcp flags & (syn|rst) == (syn|rst) log prefix "SCANNER2" counter drop
+# 0 attack?
+add rule inet filter bad_packets tcp flags & (fin|syn|rst|psh|ack|urg) < (fin) log prefix "SCANNER3" counter drop
+# xmas attack. lights up everything
+add rule inet filter bad_packets tcp flags & (fin|syn|rst|psh|ack|urg) == (fin|psh|urg) log prefix "SCANNER4" counter drop
+# if the ctstate is invalid
+add rule inet filter bad_packets ct state invalid log flags all prefix "Invalid conntrack state: " counter counter drop
+add rule inet filter bad_packets counter comment "invalid packets"
+
+
+add chain inet filter input { type filter hook input priority 0; }
+add counter inet filter filter_input
+add rule inet filter input counter name filter_input
+# blackholes goes here
+add rule inet filter input ip daddr 255.255.255.255/32 counter drop comment "really drop unsollicited IPv4 broadcast"
+
+
+add rule inet filter input ct state established,related counter accept
+add rule inet filter input iif lo counter jump input_lo
+add rule inet filter input ct state invalid counter drop 
+add rule inet filter input jump bad_packets
+
+add rule inet filter input meta iif $WAN counter jump input_red
+add rule inet filter input meta iif $LAN_IN ip daddr $LAN_INLOCALNET counter jump input_green
+add rule inet filter input meta iif $VMNET_IN ip daddr $VMNET_INLOCALNET counter jump input_blue
+add rule inet filter input counter log prefix input drop comment input
+
+
+

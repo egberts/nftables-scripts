@@ -1,0 +1,27 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-forward-green-tcp.nft
+# Title: Rules for TCP packets for green zone in type filter, hook forward
+
+
+# Allowed GREEN
+#
+add chain inet filter forward_green_tcp
+
+add counter inet filter green_forward_tcp
+add counter inet filter unexpected_green_forward_tcp
+
+add rule inet filter forward_green_tcp counter
+add rule inet filter forward_green_tcp counter name green_forward_tcp
+
+
+add rule inet filter forward_green_tcp tcp dport 22 counter accept
+add rule inet filter forward_green_tcp tcp dport 53 counter accept
+add rule inet filter forward_green_tcp tcp dport 80 counter accept
+add rule inet filter forward_green_tcp tcp dport 443 counter accept
+add rule inet filter forward_green_tcp tcp dport 922 counter accept
+
+
+add rule inet filter forward_green_tcp counter name unexpected_green_forward_tcp
+add rule inet filter forward_green_tcp counter log prefix "green_forward_tcp_dropped" drop
+
+

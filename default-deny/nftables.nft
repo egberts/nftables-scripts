@@ -1,0 +1,19 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: nftables.nft
+# Title: Rules for all packets in all zones with all types and all hooks
+# Description:
+#   A multi-config file approach for a complete default deny firewall using
+#   nftables.  Covers all:
+#     * zone names
+#     * base chain types and 
+#     * all base chain hooks.
+#
+
+# site-specific settings, contains 'nft defines'
+include "./nft-common.nft"
+
+# chain types
+include "./filter/filter.nft"
+include "./nat/nat.nft"
+include "./route/route.nft"
+

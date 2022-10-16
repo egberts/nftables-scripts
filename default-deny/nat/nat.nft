@@ -1,0 +1,23 @@
+#!/bin/bash
+
+add table ip nat
+add chain ip nat nat_postrt { type nat hook postrouting priority 100; }
+
+add counter ip nat ip_nat
+add counter ip nat ip_nat_final
+
+add rule ip nat nat_postrt counter 
+add rule ip nat nat_postrt counter name ip_nat
+
+
+# torrent port forwarding example
+# add rule ip nat nat_postrt meta iifname $WAN_IN tcp dport $TORRENT_PORT_LAN \
+        # counter dnat 192.168.1.10:$TORRENT_PORT_LAN 
+
+add rule ip nat nat_postrt oifname $WAN_IN ip saddr $LAN_INLOCALNET counter masquerade
+add rule ip nat nat_postrt oifname $WAN_IN ip saddr $VMNET_INLOCALNET counter masquerade
+
+
+add rule ip nat nat_postrt counter name ip_nat
+add rule ip nat nat_postrt counter 
+

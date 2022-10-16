@@ -1,0 +1,24 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-input-blue-tcp.nft
+# Title: Rules for TCP packets in blue zone with type filter and input hook
+#
+
+
+# BLUE
+# blue - virtual machine network
+# blue
+add chain inet filter input_blue_tcp
+add counter inet filter blue_input_tcp
+add counter inet filter blue_input_tcp_final
+
+add rule inet filter input_blue_tcp counter 
+add rule inet filter input_blue_tcp counter name blue_input_tcp
+
+
+add rule inet filter input_blue_tcp tcp dport 22 counter accept
+
+
+add rule inet filter input_blue_tcp counter name blue_input_tcp_final
+add rule inet filter input_blue_tcp counter log prefix input_blue_tcp drop comment input_blue_tcp
+
+

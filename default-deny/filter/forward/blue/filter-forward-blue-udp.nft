@@ -1,0 +1,26 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-forward-blue-udp.nft
+# Title: Rules for UDP packets in blue zone with type filter and forward hook
+#
+
+
+# BLUE
+# blue - virtual machine network
+add chain inet filter forward_blue_udp
+add counter inet filter blue_forward_udp
+add counter inet filter unexpected_blue_forward_udp
+
+add rule inet filter forward_blue_udp counter
+add rule inet filter forward_blue_udp counter name blue_forward_udp
+
+
+add rule inet filter forward_blue_udp udp sport 67 udp dport 68 counter accept
+add rule inet filter forward_blue_udp udp sport 68 udp dport 67 counter accept
+add rule inet filter forward_blue_udp udp dport 53 counter accept
+add rule inet filter forward_blue_udp udp sport 53 counter accept
+add rule inet filter forward_blue_udp udp sport 123 udp dport 123 counter accept
+
+
+add rule inet filter forward_blue_udp counter name unexpected_blue_forward_udp
+add rule inet filter forward_blue_udp counter log prefix "forward_blue_udp " drop comment "unexpected UDP drop at filter forward blue"
+

@@ -1,0 +1,25 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: nft-common.nft
+# Title: Site-specific settings for `nftables.nft` ruleset
+#
+#
+
+define WAN_IN = wlp4s0
+
+define LAN_IN = br0
+define LAN_INLOCALNET = 192.168.88.0/24
+
+define VMNET_IN = virbr0
+define VMNET_INLOCALNET = 192.168.100.0/24
+
+define TRACKER_TORRENT_PORT_WAN = 4949
+define TORRENT_PORT_WAN = 55414
+define TORRENT_PORT_LAN = 55413
+
+define DEFAULT_GATEWAY_ROUTE = { 192.168.1.1 }
+define NTP_SERVERS = { 192.168.1.1 }
+define DNS_RESOLVERS = { 192.168.1.1 }
+
+# define MAC[2]=00:00:45:00:00:00
+# define MAC[20]=00:00:dc:00:00:00
+

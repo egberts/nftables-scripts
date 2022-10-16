@@ -1,0 +1,19 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-input-all.nft
+# Title: Rules for all packets in all zones with type filter and input hook
+
+# Input ALL UDP
+add chain inet filter input_all_udp
+add counter inet filter udp_all { comment "UDP on all interfaces" }
+add counter inet filter accepted_udp_all
+
+add rule inet filter input_all_udp counter 
+add rule inet filter input_all_udp counter name udp_all
+
+
+add rule inet filter input_all_udp ip protocol udp counter reject with icmp type port-unreachable comment "reject IPv4 UDP input with ICMP port unreachable"
+add rule inet filter input_all_udp ip6 nexthdr udp counter reject with icmpv6 type port-unreachable comment "reject IPv6 UDP input with ICMPv6 port unreachable"
+# Input ALL must be a pass-thru chain policy (no drop at end)
+
+add rule inet filter input_all_udp counter name accepted_udp_all
+add rule inet filter input_all_udp counter

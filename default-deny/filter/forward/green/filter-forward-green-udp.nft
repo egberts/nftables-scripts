@@ -1,0 +1,22 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-forward-green-udp.nft
+# Title: Rules for UDP packets in green zone with type filter and hook forward
+
+
+# Allowed GREEN
+add chain inet filter forward_green_udp
+add counter inet filter green_forward_udp
+add counter inet filter unexpected_green_forward_udp { comment "Unexpected UDP for green zone, type filter, hook forward" }
+
+add rule inet filter forward_green_udp counter
+add rule inet filter forward_green_udp counter name green_forward_udp
+
+
+add rule inet filter forward_green_udp udp dport 53 counter accept
+add rule inet filter forward_green_udp udp sport 53 counter accept
+add rule inet filter forward_green_udp udp sport 123 udp dport 123 counter accept
+
+
+add rule inet filter forward_green_udp counter name unexpected_green_forward_udp
+add rule inet filter forward_green_udp counter log prefix "forward_green_udp " drop
+

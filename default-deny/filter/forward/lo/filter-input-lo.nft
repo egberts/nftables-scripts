@@ -1,0 +1,22 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-input-lo.nft
+# Title: Rules for all packets in loopback zone with type filter and input hook
+#
+
+
+# LO lo localhost
+# lo input Allowed 
+add chain inet filter input_lo
+add counter inet filter lo_input
+add counter inet filter unexpected_lo_input
+
+add rule inet filter input_lo counter 
+add rule inet filter input_lo counter name lo_input
+
+
+add rule inet filter input_lo counter accept
+
+
+add rule inet filter input_lo counter name unexpected_lo_input
+add rule inet filter input_lo counter 
+

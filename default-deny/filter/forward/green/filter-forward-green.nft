@@ -1,0 +1,33 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-forward-green.nft
+# Title: Rules for all packets for green zone in type filter, hook forward
+
+
+#
+# GREEN enp5s0/br0 LAN-based green home-network
+#
+include "./filter/forward/green/filter-forward-green-tcp.nft"
+include "./filter/forward/green/filter-forward-green-udp.nft"
+include "./filter/forward/green/filter-forward-green-icmp.nft"
+# include "./filter/forward/green/filter-forward-green-igmp.nft"
+
+# Input Green
+add chain inet filter forward_green
+add counter inet filter green_forward
+add counter inet filter unexpected_green_forward
+
+add rule inet filter forward_green counter
+add rule inet filter forward_green counter name green_forward
+
+
+add rule inet filter forward_green ip daddr 127.0.0.1/8 counter drop comment "drop invalid loopback traffic"
+add rule inet filter forward_green ip6 daddr ::1/128 counter drop 
+
+add rule inet filter forward_green ip protocol tcp ct state new counter jump forward_green_tcp
+add rule inet filter forward_green ip protocol udp ct state new counter jump forward_green_udp
+add rule inet filter forward_green ip protocol icmp ct state new counter jump forward_green_icmp
+
+
+add rule inet filter forward_green counter name unexpected_green_forward
+add rule inet filter forward_green counter log prefix forward_green drop 
+

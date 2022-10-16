@@ -1,0 +1,61 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-forward-red.nft
+# Title: Rules for all packets in red zone with type filter and forward hook
+#
+#
+
+
+include "./filter/forward/red/filter-forward-red-tcp.nft"
+include "./filter/forward/red/filter-forward-red-udp.nft"
+include "./filter/forward/red/filter-forward-red-icmp.nft"
+include "./filter/forward/red/filter-forward-red-igmp.nft"
+
+# RED wlp4s0 WAN_IN public Internet
+
+# Allowed RED
+# Input RED
+#
+add chain inet filter forward_red
+add counter inet filter red_forward
+add counter inet filter red_forward_final
+
+add rule inet filter forward_red counter
+add rule inet filter forward_red counter name red_forward
+
+
+# Drop locals from internet
+add rule inet filter forward_red ip saddr 121.12.242.43 counter drop  # BANNED
+# drop loopback traffic on non-loopback interfaces
+add rule inet filter forward_red ip daddr 127.0.0.1/8 counter drop comment "drop invalid loopback traffic"
+add rule inet filter forward_red ip6 daddr ::1/128 counter drop comment "drop invalid loopback traffic"
+
+add rule inet filter forward_red ip saddr \
+        {  \
+		192.168.0.0/24,  \
+		192.168.2.0/23, \
+		192.168.4.0/22, \
+		192.168.8.0/21, \
+		192.168.16.0/20, \
+		192.168.32.0/19, \
+		192.168.64.0/18, \
+		192.168.128.0/17, \
+		10.0.0.0/8, \
+		172.16.0.0/12 } log prefix stray_packet counter drop comment "stray packet"
+
+
+# add rule inet filter forward_red ip protocol tcp tcp dport \
+#         { ${TORRENT_PORT_LAN}, ${TORRENT_PORT_WAN}, \
+#                 ${TRACKER_TORRENT_PORT_WAN} } ct state new counter accept;
+# add rule inet filter forward_red ip protocol udp udp dport \
+#         { ${TORRENT_PORT_LAN}, ${TORRENT_PORT_WAN}, \
+#                 ${TRACKER_TORRENT_PORT_WAN} } ct state new counter accept;
+add rule inet filter forward_red ip protocol tcp ct state new counter jump forward_red_tcp
+add rule inet filter forward_red ip protocol udp ct state new counter jump forward_red_udp
+add rule inet filter forward_red ip protocol icmp ct state new counter jump forward_red_icmp
+add rule inet filter forward_red meta l4proto ipv6-icmp counter accept comment "Accept ICMPv6"
+add rule inet filter forward_red ip protocol igmp counter accept comment "Accept IGMP"
+
+
+add rule inet filter forward_red counter name red_forward_final
+add rule inet filter forward_red counter log prefix forward_red drop comment forward_red
+

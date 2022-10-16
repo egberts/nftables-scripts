@@ -1,0 +1,28 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-forward-blue.nft
+# Title: Rules for all packets in blue zone with type filter and forward hook
+#
+
+include "./filter/forward/blue/filter-forward-blue-tcp.nft"
+include "./filter/forward/blue/filter-forward-blue-udp.nft"
+include "./filter/forward/blue/filter-forward-blue-icmp.nft"
+
+# Input BLUE
+add chain inet filter forward_blue
+add counter inet filter blue_forward
+add counter inet filter blue_forward_final
+
+add rule inet filter forward_blue counter
+add rule inet filter forward_blue counter name blue_forward
+
+
+add rule inet filter forward_blue ip daddr 127.0.0.1/8 counter drop comment "drop invalid loopback traffic"
+add rule inet filter forward_blue ip6 daddr ::1/128 counter drop comment "drop invalid loopback traffic"
+add rule inet filter forward_blue ip protocol tcp ct state new counter jump forward_blue_tcp
+add rule inet filter forward_blue ip protocol udp ct state new counter jump forward_blue_udp
+add rule inet filter forward_blue ip protocol icmp ct state new counter jump forward_blue_icmp
+
+
+add rule inet filter forward_blue counter name blue_forward_final
+add rule inet filter forward_blue counter log prefix forward_blue drop
+

@@ -1,0 +1,6 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-input-all.nft
+# Title: Rules for all packets in all zones with type filter and input hook
+#
+#
+

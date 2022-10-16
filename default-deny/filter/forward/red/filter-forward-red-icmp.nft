@@ -1,0 +1,30 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-forward-red-icmp.nft
+# Title: Rules for ICMP packets in red zone with type filter and hook forward
+
+
+# Input RED
+add chain inet filter forward_red_icmp
+add counter inet filter red_forward_icmp
+add counter inet filter unexpected_red_forward_icmp
+
+add rule inet filter forward_red_icmp counter
+add rule inet filter forward_red_icmp counter name red_forward_icmp
+
+
+# red forward ICMP Allowed 
+add rule inet filter forward_red_icmp icmpv6 type 143 icmpv6 code 0 counter drop
+add rule inet filter forward_red_icmp icmpv6 type 136 icmpv6 code 0 counter drop
+add rule inet filter forward_red_icmp log prefix forward_red_icmp counter drop 
+add rule inet filter forward_red_icmp ip protocol icmp limit rate 4/second accept
+add rule inet filter forward_red_icmp ip6 nexthdr ipv6-icmp limit rate 4/second accept
+
+
+add rule inet filter forward_red_icmp counter name unexpected_red_forward_icmp
+add rule inet filter forward_red_icmp log prefix forward_red_icmp counter drop 
+
+
+
+
+# add rule inet filter forward_red ip protocol icmp ct state new counter jump forward_red_icmp
+

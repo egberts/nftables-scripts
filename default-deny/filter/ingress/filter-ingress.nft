@@ -1,0 +1,4 @@
+#!/usr/sbin/nft -f
+# File: filter-ingress.nft
+
+# none defined

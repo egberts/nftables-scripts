@@ -1,0 +1,35 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-forward.nft
+# Title: Rules for all packets in all zones wtih type filter and hook forward.
+
+
+include "./filter/forward/red/filter-forward-red.nft"
+include "./filter/forward/green/filter-forward-green.nft"
+include "./filter/forward/blue/filter-forward-blue.nft"
+
+add chain inet filter forward { type filter hook forward priority 0; }
+add counter inet filter filter_forward
+add counter inet filter unexpected_filter_forward
+
+add rule inet filter forward counter
+add rule inet filter forward counter name filter_forward
+
+
+# blackholes goes here
+add rule inet filter forward ip daddr 255.255.255.255/32 counter drop comment "really drop unsollicited IPv4 broadcast"
+
+# rules
+add rule inet filter forward ct state established,related counter accept
+add rule inet filter forward ct state invalid counter drop 
+add rule inet filter forward counter jump bad_packets
+
+
+add rule inet filter forward meta iif $WAN_IN counter jump forward_red
+add rule inet filter forward meta iif $LAN_IN counter jump forward_green
+add rule inet filter forward meta iif $VMNET_IN counter jump forward_blue
+add rule inet filter forward meta iif lo ip daddr 127.0.0.0/8 counter log prefix "illegal loopback in filter-forward" drop
+
+
+add rule inet filter forward counter name unexpected_filter_forward
+add rule inet filter forward counter log prefix "forward " drop comment forward
+

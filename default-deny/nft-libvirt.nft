@@ -1,0 +1,23 @@
+#!/usr/sbin/nft -f
+
+
+# create chains for libvirt
+add table ip filter
+add chain ip filter LIBVIRT_INP
+add chain ip filter INPUT
+add chain ip filter LIBVIRT_OUT
+add chain ip filter OUTPUT
+add chain ip filter LIBVIRT_FWD
+add chain ip filter FORWARD
+add chain ip filter LIBVIRT_FWI
+add chain ip filter LIBVIRT_FWO
+add chain ip filter LIBVIRT_FWX
+
+add table ip nat
+add chain ip nat LIBVIRT_PRT
+add chain ip nat POSTROUTING
+
+add table ip mangle
+add chain ip mangle LIBVIRT_PRT
+add chain ip mangle POSTROUTING
+

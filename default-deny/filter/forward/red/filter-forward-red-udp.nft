@@ -1,0 +1,28 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-forward-red-udp.nft
+# Title: Rules for UDP packets in red zone with type filter and forward hook
+#
+
+
+# RED wlp4s0 WAN_IN public Internet
+
+add chain inet filter forward_red_udp
+add counter inet filter red_forward_udp
+add counter inet filter red_forward_udp_final
+
+add rule inet filter forward_red_udp counter
+add rule inet filter forward_red_udp counter name red_forward_udp
+
+
+add rule inet filter forward_red_udp udp sport 67 udp dport 68 counter accept  # from DHCP server
+add rule inet filter forward_red_udp udp dport 53 counter accept  # inbound DNS
+add rule inet filter forward_red_udp udp sport 53 counter accept  # outbound DNS
+add rule inet filter forward_red_udp udp sport 123 udp dport 123 counter accept
+add rule inet filter forward_red_udp ip daddr 224.0.0.251 udp dport 1900 counter drop  # uPnP
+add rule inet filter forward_red_udp ip daddr 224.0.0.251 udp dport 5353 counter drop  # mdns/iOS Bonjour/Avahi 5353/udp
+add rule inet filter forward_red_udp udp dport { 137, 138} counter drop comment "silently drop NetBios"
+
+
+add rule inet filter forward_red_udp counter name red_forward_udp_final
+add rule inet filter forward_red_udp log prefix forward_red_udp counter drop comment forward_red_udp
+

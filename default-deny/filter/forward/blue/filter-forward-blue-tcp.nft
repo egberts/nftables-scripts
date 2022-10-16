@@ -1,0 +1,27 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-forward-blue-tcp.nft
+# Title: Rules for TCP packets in blue zone with type filter and forward hook
+#
+
+
+# BLUE
+# blue - virtual machine network
+# blue
+add chain inet filter forward_blue_tcp
+add counter inet filter blue_forward_tcp
+add counter inet filter blue_forward_tcp_final
+
+add rule inet filter forward_blue_tcp counter 
+add rule inet filter forward_blue_tcp counter name blue_forward_tcp
+
+
+add rule inet filter forward_blue_tcp tcp dport 22 counter accept
+add rule inet filter forward_blue_tcp tcp dport 53 counter accept
+add rule inet filter forward_blue_tcp tcp dport 80 counter accept
+add rule inet filter forward_blue_tcp tcp dport 443 counter accept
+
+
+add rule inet filter forward_blue_tcp counter name blue_forward_tcp_final
+add rule inet filter forward_blue_tcp counter log prefix forward_blue_tcp drop comment input_blue_tcp
+
+

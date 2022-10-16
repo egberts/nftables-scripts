@@ -1,0 +1,19 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-forward-red-igmp.nft
+# Title: Rules for IGMP packets in red zone with type filter and forward hook
+#
+#
+
+add chain inet filter forward_red_igmp
+add counter inet filter red_forward_igmp
+add counter inet filter unexpected_red_forward_igmp
+
+add rule inet filter forward_red_igmp counter
+add rule inet filter forward_red_igmp counter name red_forward_igmp
+
+
+add rule inet filter forward_red_igmp ip protocol igmp counter accept comment "Accept IGMP"
+
+
+add rule inet filter forward_red_igmp counter name unexpected_red_forward_igmp
+add rule inet filter forward_red_igmp counter log prefix "forward_red_igmp " drop
