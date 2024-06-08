@@ -1,6 +1,14 @@
 #!/usr/sbin/nft -f
-
-
+# File: nft-libvirt.nft
+# Description:
+#   Create the chains and tables for libvirt (virt-manager/virsh) VM management
+#
+# Note:
+#   These table and chain names are reserved by `libvirt-7.0.0`+ utility.
+#
+# Warning:
+#   There can be no substitution (unless you patched/modified libvirt) code.
+#
 # create chains for libvirt
 add table ip filter
 add chain ip filter LIBVIRT_INP

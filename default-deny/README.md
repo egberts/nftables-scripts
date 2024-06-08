@@ -1024,28 +1024,28 @@ table inet filter {
 		counter packets 0 bytes 0 log prefix "forward " drop comment "forward"
 	}
 }
-table ip nat {
-	counter ip_nat {
+table ip NAT {
+	counter ip_NAT {
 		packets 21255 bytes 1418765
 	}
 
-	counter ip_nat_final {
+	counter ip_NAT_final {
 		packets 0 bytes 0
 	}
 
-	chain nat_postrt {
+	chain NAT_postrt {
 		type nat hook postrouting priority srcnat; policy accept;
 		counter packets 6179 bytes 410495
-		counter name "ip_nat"
+		counter name "ip_NAT"
 		oifname "wlp4s0" ip saddr 192.168.132.0/24 counter packets 973 bytes 62311 masquerade
 		oifname "wlp4s0" ip saddr 192.168.100.0/24 counter packets 178 bytes 11926 masquerade
-		counter name "ip_nat"
+		counter name "ip_NAT"
 		counter packets 5028 bytes 336258
 		counter packets 5024 bytes 336006
-		counter name "ip_nat"
+		counter name "ip_NAT"
 		oifname "wlp4s0" ip saddr 192.168.132.0/24 counter packets 0 bytes 0 masquerade
 		oifname "wlp4s0" ip saddr 192.168.100.0/24 counter packets 0 bytes 0 masquerade
-		counter name "ip_nat"
+		counter name "ip_NAT"
 		counter packets 5024 bytes 336006
 	}
 }

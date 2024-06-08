@@ -1,23 +1,34 @@
 #!/bin/bash
+# File: nat.nft
+# Path: nft/
+# Description:
+#   Create the NAT filtering table
+#
+# Note:
+#   We use upper-case NAT, instead of lowercase 'nat'
+#
+# Warning:
+#   Do not attempt to use 'nat' as a table name nor chain name.
+#   'nat' is already reserved by 'libvirt' (virt-manager/virsh) utility
 
-add table ip nat
-add chain ip nat nat_postrt { type nat hook postrouting priority 100; }
+add table ip NAT
+add chain ip NAT NAT_postrt { type nat hook postrouting priority 100; }
 
-add counter ip nat ip_nat
-add counter ip nat ip_nat_final
+add counter ip NAT ip_NAT
+add counter ip NAT ip_NAT_final
 
-add rule ip nat nat_postrt counter 
-add rule ip nat nat_postrt counter name ip_nat
+add rule ip NAT NAT_postrt counter 
+add rule ip NAT NAT_postrt counter name ip_NAT
 
 
 # torrent port forwarding example
-# add rule ip nat nat_postrt meta iifname $WAN_IN tcp dport $TORRENT_PORT_LAN \
+# add rule ip NAT nat_postrt meta iifname $WAN_IN tcp dport $TORRENT_PORT_LAN \
         # counter dnat 192.168.1.10:$TORRENT_PORT_LAN 
 
-add rule ip nat nat_postrt oifname $WAN_IN ip saddr $LAN_INLOCALNET counter masquerade
-add rule ip nat nat_postrt oifname $WAN_IN ip saddr $VMNET_INLOCALNET counter masquerade
+add rule ip NAT NAT_postrt oifname $WAN_IN ip saddr $LAN_INLOCALNET counter masquerade
+add rule ip NAT NAT_postrt oifname $WAN_IN ip saddr $VMNET_INLOCALNET counter masquerade
 
 
-add rule ip nat nat_postrt counter name ip_nat
-add rule ip nat nat_postrt counter 
+add rule ip NAT NAT_postrt counter name ip_NAT
+add rule ip NAT NAT_postrt counter 
 
