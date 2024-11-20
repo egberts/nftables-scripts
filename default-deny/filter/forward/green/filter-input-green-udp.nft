@@ -1,0 +1,24 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-input-green-udp.nft
+# Title: Rules for UDP packets in green zone with type filter and hook input
+
+
+# Allowed GREEN
+add chain inet filter input_green_udp
+add counter inet filter green_input_udp
+add counter inet filter unexpected_green_input_udp { comment "Unexpected UDP for green zone, type filter, hook input" }
+
+add rule inet filter input_green_udp counter
+add rule inet filter input_green_udp counter name green_input_udp
+
+
+add rule inet filter input_green_udp udp sport 68 udp dport 67 counter accept
+# add rule inet filter input_green_udp udp dport 53 counter accept
+# add rule inet filter input_green_udp udp sport 53 counter accept
+add rule inet filter input_green_udp udp sport 123 udp dport 123 counter accept
+add rule inet filter input_green_udp counter jump input_all_udp
+
+
+add rule inet filter input_green_udp counter name unexpected_green_input_udp
+add rule inet filter input_green_udp counter log prefix "input_green_udp " drop
+

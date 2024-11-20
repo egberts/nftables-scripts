@@ -1,0 +1,25 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-input-red-tcp.nft
+# Title: Rules for TCP packets in red zone with type filter and input hook
+#
+
+# Allowed RED
+add chain inet filter input_red_tcp
+add counter inet filter red_input_tcp
+add counter inet filter unexpected_red_input_tcp
+
+add rule inet filter input_red_tcp counter name red_input_tcp
+
+
+add rule inet filter input_red_tcp tcp sport 443 counter accept
+add rule inet filter input_red_tcp tcp sport 80 counter accept
+add rule inet filter input_red_tcp tcp sport 53 counter accept
+add rule inet filter input_red_tcp tcp dport 53 counter accept
+add rule inet filter input_red_tcp tcp dport 22 counter accept
+add rule inet filter input_red_tcp tcp dport 922 counter accept
+add rule inet filter input_red_tcp tcp dport { 139, 445} counter drop comment "silently drop NetBios"
+
+
+add rule inet filter input_red_tcp counter name unexpected_red_input_tcp
+add rule inet filter input_red_tcp log prefix input_red_tcp counter drop comment input_red_tcp
+

@@ -1,0 +1,42 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-input.nft
+# Title: Rules for all packets in all zones wtih type filter and hook input.
+
+
+include "./filter/input/all/filter-input-all.nft"
+include "./filter/input/lo/filter-input-lo.nft"
+include "./filter/input/red/filter-input-red.nft"
+include "./filter/input/green/filter-input-green.nft"
+include "./filter/input/blue/filter-input-blue.nft"
+
+add chain inet filter input { type filter hook input priority 0; }
+add counter inet filter filter_input
+add counter inet filter filter_input_dropped
+
+add rule inet filter input counter
+add rule inet filter input counter name filter_input
+add rule inet filter input counter name filter_input_dropped
+
+
+# blackholes goes here
+# push daddr 255.255.255.255/32 to zone-specific rulset(s)
+#  add rule inet filter input ip daddr 255.255.255.255/32 counter drop comment "really drop unsollicited IPv4 broadcast"
+
+# rules
+add rule inet filter input ct state established,related counter accept
+add rule inet filter input iif lo counter jump input_lo
+add rule inet filter input ct state invalid counter drop 
+add rule inet filter input counter jump bad_packets
+
+
+add rule inet filter input meta iif $WAN_IN counter jump input_red
+add rule inet filter input meta iif $LAN_IN counter jump input_green
+add rule inet filter input meta iif $VMNET_IN counter jump input_blue
+#add rule inet filter input meta iif $WAN_IN counter jump input_red
+#add rule inet filter input meta iif $LAN_IN ip daddr $LAN_INLOCALNET counter jump input_green
+#add rule inet filter input meta iif $VMNET_IN ip daddr $VMNET_INLOCALNET counter jump input_blue
+
+
+add rule inet filter input counter name filter_input_dropped 
+add rule inet filter input counter log prefix "input " drop comment input
+

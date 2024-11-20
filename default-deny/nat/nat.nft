@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/nft -f
 # File: nat.nft
 # Path: nft/
 # Description:

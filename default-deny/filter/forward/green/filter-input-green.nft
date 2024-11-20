@@ -1,0 +1,34 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-input-green.nft
+# Title: Rules for all packets for green zone in type filter, hook input
+
+
+#
+# GREEN enp5s0/br0 LAN-based green home-network
+#
+include "./filter/input/green/filter-input-green-tcp.nft"
+include "./filter/input/green/filter-input-green-udp.nft"
+include "./filter/input/green/filter-input-green-icmp.nft"
+# include "./filter/input/green/filter-input-green-igmp.nft"
+
+# Input Green
+add chain inet filter input_green
+add counter inet filter green_input
+add counter inet filter unexpected_green_input
+
+add rule inet filter input_green counter
+add rule inet filter input_green counter name green_input
+
+add rule inet filter input_green meta iif $LAN_IN ip daddr != $LAN_INLOCALNET ip daddr != 255.255.255.255/32 counter log prefix "input_green_wrong_subnet " drop
+
+
+add rule inet filter input_green ip daddr 127.0.0.1/8 counter drop comment "drop invalid loopback traffic"
+add rule inet filter input_green ip6 daddr ::1/128 counter drop 
+add rule inet filter input_green ip protocol tcp ct state new counter jump input_green_tcp
+add rule inet filter input_green ip protocol udp ct state new counter jump input_green_udp
+add rule inet filter input_green ip protocol icmp ct state new counter jump input_green_icmp
+
+
+add rule inet filter input_green counter name unexpected_green_input
+add rule inet filter input_green counter log prefix input_green drop 
+

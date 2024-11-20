@@ -28,7 +28,7 @@ add rule inet filter allowed_input_all_udp ip6 nexthdr udp counter reject with i
 # Input ALL must be a pass-thru chain policy (no drop at end)
 
 
-# RED wlp4s0 WAN public Internet
+# RED wlp4s0 WAN_IN public Internet
 
 # Allowed RED
 add chain inet filter allowed_input_red_tcp
@@ -243,7 +243,7 @@ add rule inet filter input iif lo counter jump input_lo
 add rule inet filter input ct state invalid counter drop 
 add rule inet filter input jump bad_packets
 
-add rule inet filter input meta iif $WAN counter jump input_red
+add rule inet filter input meta iif $WAN_IN counter jump input_red
 add rule inet filter input meta iif $LAN_IN ip daddr $LAN_INLOCALNET counter jump input_green
 add rule inet filter input meta iif $VMNET_IN ip daddr $VMNET_INLOCALNET counter jump input_blue
 add rule inet filter input counter log prefix input drop comment input

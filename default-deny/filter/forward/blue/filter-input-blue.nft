@@ -1,0 +1,30 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-input-blue.nft
+# Title: Rules for all packets in blue zone with type filter and input hook
+#
+
+include "./filter/input/blue/filter-input-blue-tcp.nft"
+include "./filter/input/blue/filter-input-blue-udp.nft"
+
+# Input BLUE
+add chain inet filter input_blue
+add counter inet filter blue_input
+add counter inet filter blue_input_final
+
+add rule inet filter input_blue counter
+add rule inet filter input_blue counter name blue_input
+
+#  a != b c != d   equals ( a != b ) && ( c != d )
+add rule inet filter input_blue meta iif $VMNET_IN ip daddr != $VMNET_INLOCALNET ip daddr != 255.255.255.255/32 counter log prefix "input_blue_wrong_subnet " drop
+
+
+
+add rule inet filter input_blue ip daddr 127.0.0.1/8 counter drop comment "drop invalid loopback traffic"
+add rule inet filter input_blue ip6 daddr ::1/128 counter drop comment "drop invalid loopback traffic"
+add rule inet filter input_blue ip protocol tcp ct state new counter jump input_blue_tcp
+add rule inet filter input_blue ip protocol udp ct state new counter jump input_blue_udp
+
+
+add rule inet filter input_blue counter name blue_input_final
+add rule inet filter input_blue counter log prefix input_blue drop
+

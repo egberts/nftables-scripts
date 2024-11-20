@@ -1,0 +1,19 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-input-red-igmp.nft
+# Title: Rules for IGMP packets in red zone with type filter and input hook
+#
+#
+
+add chain inet filter input_red_igmp
+add counter inet filter red_input_igmp
+add counter inet filter unexpected_red_input_igmp
+
+add rule inet filter input_red_igmp counter
+add rule inet filter input_red_igmp counter name red_input_igmp
+
+
+add rule inet filter input_red_igmp ip protocol igmp counter accept comment "Accept IGMP"
+
+
+add rule inet filter input_red_igmp counter name unexpected_red_input_igmp
+add rule inet filter input_red_igmp counter log prefix "input_red_igmp " drop

@@ -1,0 +1,26 @@
+#!/usr/sbin/nft -f   # ignored if included directly by 'nft -f'
+# File: filter-input-green-tcp.nft
+# Title: Rules for TCP packets for green zone in type filter, hook input
+
+
+# Allowed GREEN
+#
+add chain inet filter input_green_tcp
+
+add counter inet filter green_input_tcp
+add counter inet filter unexpected_green_input_tcp
+
+add rule inet filter input_green_tcp counter
+add rule inet filter input_green_tcp counter name green_input_tcp
+
+
+add rule inet filter input_green_tcp tcp dport 22 counter accept
+add rule inet filter input_green_tcp tcp dport 922 counter accept
+add rule inet filter input_green_tcp tcp dport 2222 counter accept
+add rule inet filter input_green_tcp tcp dport 2224 counter accept
+
+
+add rule inet filter input_green_tcp counter name unexpected_green_input_tcp
+add rule inet filter input_green_tcp counter log prefix "green_input_tcp_dropped" drop
+
+

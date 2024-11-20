@@ -10,6 +10,7 @@
 #   There can be no substitution (unless you patched/modified libvirt) code.
 #
 # create chains for libvirt
+add table filter 
 add table ip filter
 add chain ip filter LIBVIRT_INP
 add chain ip filter INPUT
